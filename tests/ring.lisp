@@ -1,6 +1,6 @@
-(defpackage cl-consistent-hashing/tests/main
+(defpackage consistent-hashing/tests/main
   (:use :cl
-        :cl-consistent-hashing
+   :consistent-hashing
         :rove))
 (in-package :cl-consistent-hashing/tests/main)
 
