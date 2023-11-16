@@ -14,8 +14,7 @@ Common Lisp consistent hashing implementation.
 (ch:virtual-node-hostname
  (ch:ring-find-virtual-node-for my-ring "www.image.com"))
 
-(ch:virtual-node-hostname
- (ch:ring-find-virtual-node-for my-ring "www.image.com"))
+(ch:ring-nodes my-ring)
 ```
 
 ## Author
