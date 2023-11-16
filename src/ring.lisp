@@ -27,15 +27,19 @@
                        :hash-function hash-function
                        :finder finder))
 
-(defmethod %ring-insert-node ((ring ring) node-hostname)
+(defmethod %ring-node-member-p ((ring ring) node-hostname)
   (let ((nodes-set (ring-nodes-set ring)))
-    (unless (member node-hostname nodes-set :key #'string :test #'equal)
-      (setf (ring-nodes-set ring) (push node-hostname nodes-set)))))
+    (member node-hostname nodes-set :key #'string :test #'equal)))
+
+(defmethod %ring-insert-node ((ring ring) node-hostname)
+  (unless (%ring-node-member-p ring node-hostname)
+    (setf (ring-nodes-set ring)
+          (push node-hostname (ring-nodes-set ring)))))
 
 (defmethod %ring-delete-node ((ring ring) node-hostname)
-  (let ((nodes-set (ring-nodes-set ring)))
-    (if (member node-hostname nodes-set :key #'string :test #'equal)
-        (setf (ring-nodes-set ring) (remove node-hostname nodes-set :key #'string :test #'equal)))))
+  (when (%ring-node-member-p ring node-hostname)
+    (setf (ring-nodes-set ring)
+          (remove node-hostname (ring-nodes-set ring) :key #'string :test #'equal))))
 
 (defmethod %ring-hash-value ((ring ring) value)
   (let ((hash-function (ring-hash-function ring)))
@@ -45,31 +49,31 @@
   (let ((hash-function (ring-hash-function ring)))
     (funcall hash-function (format nil *virtual-node-key-format-string* node-hostname index))))
 
+(defmacro %for-each-virtual-node (ring node-hostname &body body)
+  `(let* ((replication-factor (ring-replication-factor ,ring))
+          (finder (ring-finder ,ring)))
+     (dotimes (replica-index replication-factor)
+       (let ((virtual-node (make-virtual-node :hostname ,node-hostname
+                                              :key (%ring-hash-virtual-node ,ring
+                                                                            ,node-hostname
+                                                                            replica-index))))
+         ,@body))))
+
 (defmethod ring-insert ((ring ring) node-hostname)
-  (let* ((replication-factor (ring-replication-factor ring))
-         (data-structure (ring-finder ring)))
-    (%ring-insert-node ring node-hostname)
-    (dotimes (replica-index replication-factor)
-      (finder-insert
-       data-structure
-       (make-virtual-node :hostname node-hostname
-                          :key (%ring-hash-virtual-node ring node-hostname replica-index))))))
+  (%ring-insert-node ring node-hostname)
+  (%for-each-virtual-node ring node-hostname
+    (finder-insert finder virtual-node)))
 
 (defmethod ring-delete ((ring ring) node-hostname)
-  (let* ((replication-factor (ring-replication-factor ring))
-         (data-structure (ring-finder ring)))
-    (%ring-delete-node ring node-hostname)
-    (dotimes (replica-index replication-factor)
-      (finder-delete
-       data-structure
-       (make-virtual-node :hostname node-hostname
-                          :key (%ring-hash-virtual-node ring node-hostname replica-index))))))
+  (%ring-delete-node ring node-hostname)
+  (%for-each-virtual-node ring node-hostname
+    (finder-delete finder virtual-node)))
 
 (defmethod ring-find-virtual-node-for ((ring ring) value)
   (let* ((hashed-value (%ring-hash-value ring value))
-         (data-structure (ring-finder ring))
-         (virtual-node-for-value (or (finder-greater-or-equal data-structure hashed-value)
-                                     (finder-minimum data-structure))))
+         (finder (ring-finder ring))
+         (virtual-node-for-value (or (finder-greater-or-equal finder hashed-value)
+                                     (finder-minimum finder))))
     virtual-node-for-value))
 
 (defmethod ring-nodes ((ring ring))
