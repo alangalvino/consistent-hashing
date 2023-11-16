@@ -21,3 +21,10 @@ Common Lisp consistent hashing implementation.
 ## Author
 
 * Alan Gomes
+
+## Copyright
+Copyright (c) 2023 Alan Gomes
+
+## License
+
+Licensed under the MIT License.
