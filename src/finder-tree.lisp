@@ -10,17 +10,17 @@
                                        :key #'virtual-node-key)))
 
 (defmethod finder-insert ((finder finder) (virtual-node virtual-node))
-  (let ((tree (finder-data-structure finder)))
+  (with-slots ((tree data-structure)) finder
     (trees:insert virtual-node tree)))
 
 (defmethod finder-delete ((finder finder) (virtual-node virtual-node))
-  (let ((tree (finder-data-structure finder)))
+  (with-slots ((tree data-structure)) finder
     (trees:delete (virtual-node-key virtual-node) tree)))
 
 (defmethod finder-greater-or-equal ((finder finder) value)
-  (let ((tree (finder-data-structure finder)))
+  (with-slots ((tree data-structure)) finder
     (trees:upper-bound value tree)))
 
 (defmethod finder-minimum ((finder finder))
-  (let ((tree (finder-data-structure finder)))
+  (with-slots ((tree data-structure)) finder
     (trees:minimum tree)))
